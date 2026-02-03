@@ -2,7 +2,7 @@ use rand::{Rng, prelude::ThreadRng, rng};
 use rand_distr::Alphanumeric;
 use std::path::{Path, PathBuf};
 
-use crate::command::{DirectoryEnum, LanguageEnum};
+use crate::language::Language;
 
 #[derive(Debug)]
 pub struct TestRun {
@@ -26,7 +26,7 @@ impl From<&TestRun> for PathBuf {
 }
 
 impl TestRun {
-    pub fn new(language: &LanguageEnum, hits_count: u32, ignores_count: u32) -> Self {
+    pub fn new(language: &Language, hits_count: u32, ignores_count: u32) -> Self {
         let mut rng = rng();
         let name = TestRun::generate_folder_name(&mut rng);
 
@@ -54,45 +54,39 @@ impl TestRun {
         run
     }
 
-    fn generate_hits(&mut self, language: &LanguageEnum, hits_count: u32) {
-        let directory: DirectoryEnum = language.into();
-
+    fn generate_hits(&mut self, language: &Language, hits_count: u32) {
         for _ in 0..hits_count {
             let name = TestRun::generate_folder_name(&mut self.rng);
-            let path = self
-                .path
-                .join(Path::new(&name))
-                .join(Path::new(&directory.to_string()));
+            for dirs in language.dirs() {
+                let path = self.path.join(Path::new(&name)).join(Path::new(dirs));
 
-            std::fs::create_dir_all(&path).unwrap();
+                std::fs::create_dir_all(&path).unwrap();
 
-            if language == &LanguageEnum::Rust {
-                let file_path = path.join(".rustc_info.json");
-                std::fs::File::create(file_path).unwrap();
+                if language == &Language::Rust {
+                    let file_path = path.join(".rustc_info.json");
+                    std::fs::File::create(file_path).unwrap();
+                }
+
+                self.hits.push(path);
             }
-
-            self.hits.push(path);
         }
     }
 
-    fn generate_ignores(&mut self, language: &LanguageEnum, ignores_count: u32) {
-        let directory: DirectoryEnum = language.into();
-
+    fn generate_ignores(&mut self, language: &Language, ignores_count: u32) {
         for _ in 0..ignores_count {
-            let name = TestRun::generate_folder_name(&mut self.rng);
-            let path = self
-                .path
-                .join(Path::new(&name))
-                .join(Path::new(&directory.to_string()));
+            for dir in language.dirs() {
+                let name = TestRun::generate_folder_name(&mut self.rng);
+                let path = self.path.join(Path::new(&name)).join(Path::new(dir));
 
-            std::fs::create_dir_all(&path).unwrap();
+                std::fs::create_dir_all(&path).unwrap();
 
-            if language == &LanguageEnum::Rust {
-                let file_path = path.join(".rustc_info.json");
-                std::fs::File::create(file_path).unwrap();
+                if language == &Language::Rust {
+                    let file_path = path.join(".rustc_info.json");
+                    std::fs::File::create(file_path).unwrap();
+                }
+
+                self.ignores.push(path);
             }
-
-            self.ignores.push(path);
         }
     }
 
@@ -107,33 +101,16 @@ impl TestRun {
         }
     }
 
-    fn generate_different_language_hits(&mut self, language: &LanguageEnum) {
-        let different_language = if language == &LanguageEnum::Node {
-            DirectoryEnum::Target.to_string()
+    fn generate_different_language_hits(&mut self, language: &Language) {
+        let different_language = if language == &Language::Node {
+            Language::Rust.dirs()
         } else {
-            DirectoryEnum::NodeModules.to_string()
+            Language::Node.dirs()
         };
 
         let name = TestRun::generate_folder_name(&mut self.rng);
-        let path = self
-            .path
-            .join(Path::new(&name))
-            .join(Path::new(&different_language));
-
-        std::fs::create_dir_all(&path).unwrap();
-
-        self.misses.push(path);
-    }
-
-    fn generate_invalid(&mut self, language: &LanguageEnum) {
-        let directory: DirectoryEnum = language.into();
-
-        if language == &LanguageEnum::Rust {
-            let name = TestRun::generate_folder_name(&mut self.rng);
-            let path = self
-                .path
-                .join(Path::new(&name))
-                .join(Path::new(&directory.to_string()));
+        for dir in different_language {
+            let path = self.path.join(Path::new(&name)).join(Path::new(dir));
 
             std::fs::create_dir_all(&path).unwrap();
 
@@ -141,21 +118,33 @@ impl TestRun {
         }
     }
 
-    fn generate_partial(&mut self, language: &LanguageEnum) {
-        let directory: DirectoryEnum = language.into();
+    fn generate_invalid(&mut self, language: &Language) {
+        if language == &Language::Rust {
+            let name = TestRun::generate_folder_name(&mut self.rng);
+            for dir in language.dirs() {
+                let path = self.path.join(Path::new(&name)).join(Path::new(dir));
 
-        let name = TestRun::generate_folder_name(&mut self.rng);
-        let name_inner = TestRun::generate_folder_name(&mut self.rng);
-        let name_inner = format!("{directory}_{name_inner}");
+                std::fs::create_dir_all(&path).unwrap();
 
-        let path = self
-            .path
-            .join(Path::new(&name))
-            .join(Path::new(&name_inner));
+                self.misses.push(path);
+            }
+        }
+    }
 
-        std::fs::create_dir_all(&path).unwrap();
+    fn generate_partial(&mut self, language: &Language) {
+        for dir in language.dirs() {
+            let name = TestRun::generate_folder_name(&mut self.rng);
+            let name_inner = TestRun::generate_folder_name(&mut self.rng);
+            let name_inner = format!("{dir}_{name_inner}");
 
-        self.misses.push(path);
+            let path = self
+                .path
+                .join(Path::new(&name))
+                .join(Path::new(&name_inner));
+
+            std::fs::create_dir_all(&path).unwrap();
+            self.misses.push(path);
+        }
     }
 
     fn generate_folder_name(rng: &mut impl Rng) -> String {

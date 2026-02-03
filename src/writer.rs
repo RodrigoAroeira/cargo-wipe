@@ -2,7 +2,6 @@ use std::{fmt::Display, io};
 
 use yansi::Paint as _;
 
-use crate::command::DirectoryEnum;
 use crate::dir_helpers::DirInfo;
 use crate::wipe_params::WipeParams;
 
@@ -27,8 +26,6 @@ where
     }
 
     pub fn write_header(&mut self, params: &WipeParams) -> io::Result<()> {
-        let directory: DirectoryEnum = params.language.clone().into();
-
         let title = if params.wipe {
             "[WIPING]".red()
         } else {
@@ -36,13 +33,18 @@ where
         };
         write!(self.stdout, "{}", title.bold())?;
 
+        write!(self.stdout, r#" Recursively searching for all ""#,)?;
+        for (i, dir) in params.language.dirs().iter().enumerate() {
+            write!(self.stdout, "{}", dir.cyan())?;
+            if i != params.language.dirs().len() - 1 {
+                write!(self.stdout, ", ")?;
+            }
+        }
         writeln!(
             self.stdout,
-            r#" Recursively searching for all "{}" folders in {}..."#,
-            &directory.cyan(),
-            params.path.display().cyan(),
+            r#"" folders in {}..."#,
+            params.path.display().cyan()
         )?;
-
         self.stdout.flush()?;
         Ok(())
     }

@@ -1,13 +1,14 @@
 use std::path::PathBuf;
 use std::{env, io};
 
-use crate::command::{Args, LanguageEnum};
+use crate::command::Args;
+use crate::language::Language;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct WipeParams {
     pub wipe: bool,
     pub path: PathBuf,
-    pub language: LanguageEnum,
+    pub language: Language,
     pub ignores: Vec<PathBuf>,
 }
 
@@ -18,7 +19,7 @@ impl WipeParams {
         Ok(Self {
             wipe: args.wipe,
             path,
-            language: args.language.clone(),
+            language: args.language,
             ignores: args.ignores.clone(),
         })
     }
@@ -30,19 +31,20 @@ mod tests {
 
     use rstest::rstest;
 
-    use crate::command::{Args, LanguageEnum};
+    use crate::command::Args;
+    use crate::language::Language;
     use crate::wipe_params::WipeParams;
 
     #[rstest]
-    #[case(Args { language: LanguageEnum::Node, wipe: false, ignores: Vec::new() })]
-    #[case(Args { language: LanguageEnum::Node, wipe: true, ignores: Vec::new() })]
-    #[case(Args { language: LanguageEnum::Node, wipe: true, ignores: vec![PathBuf::from("example/path")] })]
-    #[case(Args { language: LanguageEnum::Rust, wipe: false, ignores: Vec::new() })]
-    #[case(Args { language: LanguageEnum::Rust, wipe: true, ignores: Vec::new() })]
-    #[case(Args { language: LanguageEnum::Rust, wipe: true, ignores: vec![PathBuf::from("example/path")] })]
-    #[case(Args { language: LanguageEnum::Terraform, wipe: false, ignores: Vec::new() })]
-    #[case(Args { language: LanguageEnum::Terraform, wipe: true, ignores: Vec::new() })]
-    #[case(Args { language: LanguageEnum::Terraform, wipe: true, ignores: vec![PathBuf::from("example/path")] })]
+    #[case(Args { language: Language::Node, wipe: false, ignores: Vec::new() })]
+    #[case(Args { language: Language::Node, wipe: true, ignores: Vec::new() })]
+    #[case(Args { language: Language::Node, wipe: true, ignores: vec![PathBuf::from("example/path")] })]
+    #[case(Args { language: Language::Rust, wipe: false, ignores: Vec::new() })]
+    #[case(Args { language: Language::Rust, wipe: true, ignores: Vec::new() })]
+    #[case(Args { language: Language::Rust, wipe: true, ignores: vec![PathBuf::from("example/path")] })]
+    #[case(Args { language: Language::Terraform, wipe: false, ignores: Vec::new() })]
+    #[case(Args { language: Language::Terraform, wipe: true, ignores: Vec::new() })]
+    #[case(Args { language: Language::Terraform, wipe: true, ignores: vec![PathBuf::from("example/path")] })]
     fn test_wipe_params(#[case] args: Args) {
         let params = WipeParams::new(&args).unwrap();
 

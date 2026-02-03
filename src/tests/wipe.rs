@@ -4,101 +4,102 @@ use std::{io::Cursor, println};
 use rstest::rstest;
 use yansi::Paint as _;
 
-use crate::command::{DirectoryEnum, LanguageEnum};
+use crate::language::Language;
 use crate::tests::helpers::test_run::TestRun;
 use crate::wipe::Wipe;
 use crate::wipe_params::WipeParams;
 use crate::writer::{SPACING_FILES, SPACING_SIZE};
 
 #[rstest]
-#[case(LanguageEnum::Node, false)]
-#[case(LanguageEnum::Node, true)]
-#[case(LanguageEnum::Rust, false)]
-#[case(LanguageEnum::Rust, true)]
-#[case(LanguageEnum::Terraform, false)]
-#[case(LanguageEnum::Terraform, true)]
-fn run_with_hits(#[case] language: LanguageEnum, #[case] wipe: bool) {
-    let test_run = TestRun::new(&language, 3, 0);
-    let directory: DirectoryEnum = (&language).into();
+#[case(Language::Node, false)]
+#[case(Language::Node, true)]
+#[case(Language::Rust, false)]
+#[case(Language::Rust, true)]
+#[case(Language::Terraform, false)]
+#[case(Language::Terraform, true)]
+fn run_with_hits(#[case] language: Language, #[case] wipe: bool) {
+    for directory in language.dirs() {
+        let test_run = TestRun::new(&language, 3, 0);
 
-    let params = WipeParams {
-        wipe,
-        path: PathBuf::from(&test_run),
-        language: language.clone(),
-        ignores: Vec::new(),
-    };
+        let params = WipeParams {
+            wipe,
+            path: PathBuf::from(&test_run),
+            language: language.clone(),
+            ignores: Vec::new(),
+        };
 
-    let mut buff = Cursor::new(Vec::new());
-    Wipe::new(&mut buff, &params).run().unwrap();
+        let mut buff = Cursor::new(Vec::new());
+        Wipe::new(&mut buff, &params).run().unwrap();
 
-    let output = std::str::from_utf8(buff.get_ref()).unwrap();
-    println!("{output}");
+        let output = std::str::from_utf8(buff.get_ref()).unwrap();
+        println!("{output}");
 
-    // header
-    let expected = format!("{}", "[DRY RUN]".green().bold());
-    assert_eq!(output.contains(&expected), !wipe);
+        // header
+        let expected = format!("{}", "[DRY RUN]".green().bold());
+        assert_eq!(output.contains(&expected), !wipe);
 
-    let expected = format!("{}", "[WIPING]".red().bold());
-    assert_eq!(output.contains(&expected), wipe);
+        let expected = format!("{}", "[WIPING]".red().bold());
+        assert_eq!(output.contains(&expected), wipe);
 
-    let expected = format!(r#""{}""#, directory.cyan());
-    assert!(output.contains(&expected));
-
-    // body
-    // hits should be listed and wiped if wipe is true
-    for path in &test_run.hits {
-        let expected = String::from(path.to_str().unwrap());
+        let expected = format!(r#""{}""#, directory.cyan());
         assert!(output.contains(&expected));
-        assert_eq!(path.exists(), !wipe);
-    }
 
-    // misses should not be listed and not wiped
-    for path in &test_run.misses {
-        let expected = String::from(path.to_str().unwrap());
+        // body
+        // hits should be listed and wiped if wipe is true
+        for path in &test_run.hits {
+            let expected = String::from(path.to_str().unwrap());
+            assert!(output.contains(&expected));
+            assert_eq!(path.exists(), !wipe);
+        }
+
+        // misses should not be listed and not wiped
+        for path in &test_run.misses {
+            let expected = String::from(path.to_str().unwrap());
+            assert!(!output.contains(&expected));
+            assert!(path.exists());
+        }
+
+        // summary should be displayed
+        let expected = format!("{:>files$}", "Files #".cyan(), files = SPACING_FILES);
+        let output = output.replacen(&expected, "", 1);
+        assert!(output.contains(&expected));
+
+        let expected = format!("{:>size$}", "Size (MB)".cyan(), size = SPACING_SIZE);
+        let output = output.replacen(&expected, "", 1);
+
+        let expected = format!("{:>size$}", "Size".cyan(), size = SPACING_SIZE);
+        assert!(output.contains(&expected));
+
+        let expected = format!("{}", test_run.path.display().cyan());
+        let output = &output.replacen(&expected, "", 1);
+        assert!(output.contains(&expected));
+
+        let expected = format!("{}", "Ignored".yellow());
         assert!(!output.contains(&expected));
-        assert!(path.exists());
-    }
 
-    // summary should be displayed
-    let expected = format!("{:>files$}", "Files #".cyan(), files = SPACING_FILES);
-    let output = output.replacen(&expected, "", 1);
-    assert!(output.contains(&expected));
-
-    let expected = format!("{:>size$}", "Size (MB)".cyan(), size = SPACING_SIZE);
-    let output = output.replacen(&expected, "", 1);
-
-    let expected = format!("{:>size$}", "Size".cyan(), size = SPACING_SIZE);
-    assert!(output.contains(&expected));
-
-    let expected = format!("{}", test_run.path.display().cyan());
-    let output = &output.replacen(&expected, "", 1);
-    assert!(output.contains(&expected));
-
-    let expected = format!("{}", "Ignored".yellow());
-    assert!(!output.contains(&expected));
-
-    // footer
-    if wipe {
-        let expected = format!("{}", "All clear!".green());
-        assert!(output.contains(&expected));
-    } else {
-        let expected = format!(
-            "Run {} to wipe all folders found. {}",
-            format!("cargo wipe {} -w", params.language).red(),
-            "USE WITH CAUTION!".red()
-        );
-        assert!(output.contains(&expected));
+        // footer
+        if wipe {
+            let expected = format!("{}", "All clear!".green());
+            assert!(output.contains(&expected));
+        } else {
+            let expected = format!(
+                "Run {} to wipe all folders found. {}",
+                format!("cargo wipe {} -w", params.language).red(),
+                "USE WITH CAUTION!".red()
+            );
+            assert!(output.contains(&expected));
+        }
     }
 }
 
 #[rstest]
-#[case(LanguageEnum::Node, false)]
-#[case(LanguageEnum::Node, true)]
-#[case(LanguageEnum::Rust, false)]
-#[case(LanguageEnum::Rust, true)]
-#[case(LanguageEnum::Terraform, false)]
-#[case(LanguageEnum::Terraform, true)]
-fn run_no_hits(#[case] language: LanguageEnum, #[case] wipe: bool) {
+#[case(Language::Node, false)]
+#[case(Language::Node, true)]
+#[case(Language::Rust, false)]
+#[case(Language::Rust, true)]
+#[case(Language::Terraform, false)]
+#[case(Language::Terraform, true)]
+fn run_no_hits(#[case] language: Language, #[case] wipe: bool) {
     let test_run = TestRun::new(&language, 0, 0);
 
     let params = WipeParams {
@@ -146,13 +147,13 @@ fn run_no_hits(#[case] language: LanguageEnum, #[case] wipe: bool) {
 }
 
 #[rstest]
-#[case(LanguageEnum::Node, false)]
-#[case(LanguageEnum::Node, true)]
-#[case(LanguageEnum::Rust, false)]
-#[case(LanguageEnum::Rust, true)]
-#[case(LanguageEnum::Terraform, false)]
-#[case(LanguageEnum::Terraform, true)]
-fn run_with_ignores(#[case] language: LanguageEnum, #[case] wipe: bool) {
+#[case(Language::Node, false)]
+#[case(Language::Node, true)]
+#[case(Language::Rust, false)]
+#[case(Language::Rust, true)]
+#[case(Language::Terraform, false)]
+#[case(Language::Terraform, true)]
+fn run_with_ignores(#[case] language: Language, #[case] wipe: bool) {
     let test_run = TestRun::new(&language, 3, 3);
 
     let params = WipeParams {

@@ -1,11 +1,14 @@
 use num_format::{Locale, ToFormattedString};
 use number_prefix::NumberPrefix;
 use std::path::PathBuf;
-use std::{fs, io};
+use std::{
+    fs,
+    io::{self, Result},
+};
 
-use crate::command::{DirectoryEnum, LanguageEnum};
+use crate::language::Language;
 
-pub type PathsResult = io::Result<Vec<Result<String, io::Error>>>;
+pub type PathsResult = Result<Vec<Result<String>>>;
 
 #[derive(Debug, Copy, Clone)]
 pub struct DirInfo {
@@ -41,8 +44,8 @@ impl DirInfo {
         }
     }
 
-    fn is_valid_target(path: PathBuf, directory: &DirectoryEnum) -> bool {
-        if directory == &DirectoryEnum::Target {
+    fn is_valid_target(path: PathBuf, directory: &Language) -> bool {
+        if directory == &Language::Rust {
             let file_path = path.join(".rustc_info.json");
             return file_path.exists();
         }
@@ -50,10 +53,8 @@ impl DirInfo {
         true
     }
 
-    pub fn get_paths_to_delete(path: impl Into<PathBuf>, language: &LanguageEnum) -> PathsResult {
-        let directory: DirectoryEnum = language.clone().into();
-
-        fn walk(dir: io::Result<fs::ReadDir>, directory: &DirectoryEnum) -> PathsResult {
+    pub fn get_paths_to_delete(path: impl Into<PathBuf>, language: &Language) -> PathsResult {
+        fn walk(dir: io::Result<fs::ReadDir>, directory: &Language) -> PathsResult {
             let mut dir = match dir {
                 Ok(dir) => dir,
                 Err(e) => {
@@ -61,31 +62,29 @@ impl DirInfo {
                 }
             };
 
-            dir.try_fold(
-                Vec::new(),
-                |mut acc: Vec<Result<String, io::Error>>, file| {
-                    let file = file?;
+            dir.try_fold(Vec::new(), |mut acc: Vec<Result<String>>, file| {
+                let file = file?;
 
-                    let size = match file.metadata() {
-                        Ok(data) if data.is_dir() => {
-                            if file.file_name() == directory.to_string()[..] {
-                                if DirInfo::is_valid_target(file.path(), directory) {
-                                    acc.push(Ok(file.path().display().to_string()));
-                                }
-                            } else {
-                                acc.append(&mut walk(fs::read_dir(file.path()), directory)?);
+                let size = match file.metadata() {
+                    Ok(data) if data.is_dir() => {
+                        if directory.dirs().iter().any(|f| file.file_name() == f[..]) {
+                            // if file.file_name() == directory.dir()[..] {
+                            if DirInfo::is_valid_target(file.path(), directory) {
+                                acc.push(Ok(file.path().display().to_string()));
                             }
-                            acc
+                        } else {
+                            acc.append(&mut walk(fs::read_dir(file.path()), directory)?);
                         }
-                        _ => acc,
-                    };
+                        acc
+                    }
+                    _ => acc,
+                };
 
-                    Ok(size)
-                },
-            )
+                Ok(size)
+            })
         }
 
-        walk(fs::read_dir(path.into()), &directory)
+        walk(fs::read_dir(path.into()), language)
     }
 
     pub fn dir_size(path: impl Into<PathBuf>) -> io::Result<DirInfo> {

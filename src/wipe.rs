@@ -30,10 +30,9 @@ where
 
         writer.write_header(params)?;
 
-        let paths_to_delete = DirInfo::get_paths_to_delete(&params.path, &params.language)?;
-        let paths_to_delete = paths_to_delete
-            .iter()
-            .filter_map(|p| p.as_ref().ok())
+        let paths_to_delete = DirInfo::get_paths_to_delete(&params.path, &params.language)?
+            .into_iter()
+            .filter_map(Result::ok)
             .collect::<Vec<_>>();
 
         let previous_info = if paths_to_delete.is_empty() {
@@ -52,7 +51,7 @@ where
             .map(|p| p.display().to_string().to_lowercase())
             .collect::<Vec<_>>();
 
-        for path in paths_to_delete {
+        for path in paths_to_delete.iter() {
             let dir_info = DirInfo::dir_size(path);
 
             let ignored = paths_ignored

@@ -1,14 +1,17 @@
 use std::io::stdout;
 
 use clap::Parser;
+use strum::IntoEnumIterator;
 
-pub mod command;
-pub mod dir_helpers;
-pub mod wipe;
-pub mod wipe_params;
-pub mod writer;
+mod command;
+mod dir_helpers;
+mod language;
+mod wipe;
+mod wipe_params;
+mod writer;
 
-use crate::command::Command;
+use crate::command::Args;
+use crate::language::Language;
 use crate::wipe::Wipe;
 use crate::wipe_params::WipeParams;
 
@@ -16,13 +19,19 @@ use crate::wipe_params::WipeParams;
 mod tests;
 
 fn main() -> anyhow::Result<()> {
-    let mut stdout = stdout();
-    let command = Command::parse();
+    let stdout = stdout();
+    let mut args = Args::parse();
+    const ALL: Language = Language::All;
+    let languages = match args.language {
+        ALL => Language::iter().filter(|&l| l != ALL).collect(),
+        l => vec![l],
+    };
 
-    match command {
-        Command::Wipe(args) => {
-            let params = WipeParams::new(&args)?;
-            Wipe::new(&mut stdout, &params).run()?;
+    for l in languages {
+        args.language = l;
+        let params = WipeParams::new(&args)?;
+        if let Err(e) = Wipe::new(&mut stdout.lock(), &params).run() {
+            eprintln!("An error occurred: {e}")
         }
     }
 

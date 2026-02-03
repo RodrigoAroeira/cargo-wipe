@@ -5,19 +5,19 @@ mod wipe_permissions_tests {
 
     use rstest::rstest;
 
-    use crate::command::LanguageEnum;
+    use crate::language::Language;
     use crate::tests::helpers::test_run::TestRun;
     use crate::wipe::Wipe;
     use crate::wipe_params::WipeParams;
 
     #[rstest]
-    #[case(LanguageEnum::Node, false)]
-    #[case(LanguageEnum::Node, true)]
-    #[case(LanguageEnum::Rust, false)]
-    #[case(LanguageEnum::Rust, true)]
-    #[case(LanguageEnum::Terraform, false)]
-    #[case(LanguageEnum::Terraform, true)]
-    fn test_with_readonly_folders(#[case] language: LanguageEnum, #[case] wipe: bool) {
+    #[case(Language::Node, false)]
+    #[case(Language::Node, true)]
+    #[case(Language::Rust, false)]
+    #[case(Language::Rust, true)]
+    #[case(Language::Terraform, false)]
+    #[case(Language::Terraform, true)]
+    fn test_with_readonly_folders(#[case] language: Language, #[case] wipe: bool) {
         use std::fs;
         use std::os::unix::fs::PermissionsExt;
 
