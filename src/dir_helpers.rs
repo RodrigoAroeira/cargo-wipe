@@ -45,12 +45,13 @@ impl DirInfo {
     }
 
     fn is_valid_target(path: PathBuf, directory: &Language) -> bool {
-        if directory == &Language::Rust {
-            let file_path = path.join(".rustc_info.json");
-            return file_path.exists();
+        match directory {
+            Language::Rust => {
+                let file_path = path.join(".rustc_info.json");
+                file_path.exists()
+            }
+            _ => true,
         }
-
-        true
     }
 
     pub fn get_paths_to_delete(path: impl Into<PathBuf>, language: &Language) -> PathsResult {
