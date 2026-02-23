@@ -24,7 +24,7 @@ fn run_with_hits(#[case] language: Language, #[case] wipe: bool) {
         let params = WipeParams {
             wipe,
             path: PathBuf::from(&test_run),
-            language: language.clone(),
+            language,
             ignores: Vec::new(),
         };
 
