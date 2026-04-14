@@ -4,10 +4,10 @@ use std::{io::Cursor, println};
 use rstest::rstest;
 use yansi::Paint as _;
 
+use crate::command::Args;
 use crate::language::Language;
 use crate::tests::helpers::test_run::TestRun;
 use crate::wipe::Wipe;
-use crate::wipe_params::WipeParams;
 use crate::writer::{SPACING_FILES, SPACING_SIZE};
 
 #[rstest]
@@ -21,15 +21,15 @@ fn run_with_hits(#[case] language: Language, #[case] wipe: bool) {
     for directory in language.dirs() {
         let test_run = TestRun::new(&language, 3, 0);
 
-        let params = WipeParams {
-            wipe,
-            path: PathBuf::from(&test_run),
+        let args = Args {
             language,
+            wipe,
             ignores: Vec::new(),
+            path: PathBuf::from(&test_run),
         };
 
         let mut buff = Cursor::new(Vec::new());
-        Wipe::new(&mut buff, &params).run().unwrap();
+        Wipe::new(&mut buff).run(&args).unwrap();
 
         let output = std::str::from_utf8(buff.get_ref()).unwrap();
         println!("{output}");
@@ -84,7 +84,7 @@ fn run_with_hits(#[case] language: Language, #[case] wipe: bool) {
         } else {
             let expected = format!(
                 "Run {} to wipe all folders found. {}",
-                format!("cargo wipe {} -w", params.language).red(),
+                format!("cargo wipe {} -w", args.language).red(),
                 "USE WITH CAUTION!".red()
             );
             assert!(output.contains(&expected));
@@ -102,7 +102,7 @@ fn run_with_hits(#[case] language: Language, #[case] wipe: bool) {
 fn run_no_hits(#[case] language: Language, #[case] wipe: bool) {
     let test_run = TestRun::new(&language, 0, 0);
 
-    let params = WipeParams {
+    let args = Args {
         wipe,
         path: PathBuf::from(&test_run),
         language,
@@ -110,7 +110,7 @@ fn run_no_hits(#[case] language: Language, #[case] wipe: bool) {
     };
 
     let mut buff = Cursor::new(Vec::new());
-    Wipe::new(&mut buff, &params).run().unwrap();
+    Wipe::new(&mut buff).run(&args).unwrap();
 
     let output = std::str::from_utf8(buff.get_ref()).unwrap();
     println!("{output}");
@@ -156,7 +156,7 @@ fn run_no_hits(#[case] language: Language, #[case] wipe: bool) {
 fn run_with_ignores(#[case] language: Language, #[case] wipe: bool) {
     let test_run = TestRun::new(&language, 3, 3);
 
-    let params = WipeParams {
+    let args = Args {
         wipe,
         path: PathBuf::from(&test_run),
         language,
@@ -164,7 +164,7 @@ fn run_with_ignores(#[case] language: Language, #[case] wipe: bool) {
     };
 
     let mut buff = Cursor::new(Vec::new());
-    Wipe::new(&mut buff, &params).run().unwrap();
+    Wipe::new(&mut buff).run(&args).unwrap();
 
     let output = std::str::from_utf8(buff.get_ref()).unwrap();
     let lines = output.lines();

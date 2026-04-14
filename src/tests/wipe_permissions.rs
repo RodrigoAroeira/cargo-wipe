@@ -5,10 +5,10 @@ mod wipe_permissions_tests {
 
     use rstest::rstest;
 
+    use crate::command::Args;
     use crate::language::Language;
     use crate::tests::helpers::test_run::TestRun;
     use crate::wipe::Wipe;
-    use crate::wipe_params::WipeParams;
 
     #[rstest]
     #[case(Language::Node, false)]
@@ -23,7 +23,7 @@ mod wipe_permissions_tests {
 
         let test_run = TestRun::new(&language, 3, 0);
 
-        let params = WipeParams {
+        let args = Args {
             wipe,
             path: PathBuf::from(&test_run),
             language,
@@ -37,7 +37,7 @@ mod wipe_permissions_tests {
         fs::set_permissions(first_hit_parent, permissions).unwrap();
 
         let mut buff = Cursor::new(Vec::new());
-        Wipe::new(&mut buff, &params).run().unwrap();
+        Wipe::new(&mut buff).run(&args).unwrap();
 
         let output = std::str::from_utf8(buff.get_ref()).unwrap();
         println!("{output}");

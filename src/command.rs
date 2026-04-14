@@ -19,6 +19,9 @@ pub struct Args {
     /// Absolute paths to ignore
     #[arg(short, long, value_parser)]
     pub ignores: Vec<PathBuf>,
+    /// Path to search
+    #[arg(short, long, default_value = ".")]
+    pub path: PathBuf,
 }
 
 #[cfg(test)]

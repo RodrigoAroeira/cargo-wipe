@@ -2,8 +2,7 @@ use std::{fmt::Display, io};
 
 use yansi::Paint as _;
 
-use crate::dir_helpers::DirInfo;
-use crate::wipe_params::WipeParams;
+use crate::{command::Args, dir_helpers::DirInfo};
 
 pub const SPACING_FILES: usize = 12;
 pub const SPACING_SIZE: usize = 18;
@@ -25,8 +24,8 @@ where
         Self { stdout }
     }
 
-    pub fn write_header(&mut self, params: &WipeParams) -> io::Result<()> {
-        let title = if params.wipe {
+    pub fn write_header(&mut self, args: &Args) -> io::Result<()> {
+        let title = if args.wipe {
             "[WIPING]".red()
         } else {
             "[DRY RUN]".green()
@@ -34,16 +33,16 @@ where
         write!(self.stdout, "{}", title.bold())?;
 
         write!(self.stdout, r#" Recursively searching for all ""#,)?;
-        for (i, dir) in params.language.dirs().iter().enumerate() {
+        for (i, dir) in args.language.dirs().iter().enumerate() {
             write!(self.stdout, "{}", dir.cyan())?;
-            if i != params.language.dirs().len() - 1 {
+            if i != args.language.dirs().len() - 1 {
                 write!(self.stdout, ", ")?;
             }
         }
         writeln!(
             self.stdout,
             r#"" folders in {}..."#,
-            params.path.display().cyan()
+            args.path.display().cyan()
         )?;
         self.stdout.flush()?;
         Ok(())
@@ -91,7 +90,7 @@ where
 
     pub fn write_summary(
         &mut self,
-        params: &WipeParams,
+        args: &Args,
         wipe_info: &DirInfo,
         ignore_info: &DirInfo,
         previous_info: &Option<DirInfo>,
@@ -111,14 +110,10 @@ where
                 "Files #".cyan(),
                 "Size".cyan(),
                 "",
-                params.path.display().cyan(),
+                args.path.display().cyan(),
             )?;
 
-            let label = if params.wipe {
-                "Previously"
-            } else {
-                "Currently"
-            };
+            let label = if args.wipe { "Previously" } else { "Currently" };
 
             self.writeln_spaced_line(
                 previous_info.file_count_formatted(),
@@ -136,7 +131,7 @@ where
                 )?;
             }
 
-            let label = if params.wipe { "Wiped" } else { "Can wipe" };
+            let label = if args.wipe { "Wiped" } else { "Can wipe" };
 
             self.writeln_spaced_line(
                 wipe_info.file_count_formatted().red(),
@@ -145,7 +140,7 @@ where
                 label.red(),
             )?;
 
-            let label = if params.wipe { "Now" } else { "After wipe" };
+            let label = if args.wipe { "Now" } else { "After wipe" };
 
             self.writeln_spaced_line(
                 after.file_count_formatted().green(),
@@ -161,15 +156,15 @@ where
         Ok(())
     }
 
-    pub fn write_footer(&mut self, params: &WipeParams, wipe_info: &DirInfo) -> io::Result<()> {
+    pub fn write_footer(&mut self, args: &Args, wipe_info: &DirInfo) -> io::Result<()> {
         if wipe_info.dir_count > 0 {
-            if params.wipe {
+            if args.wipe {
                 writeln!(self.stdout, "{}", "All clear!".green())?
             } else {
                 writeln!(
                     self.stdout,
                     "Run {} to wipe all folders found. {}",
-                    format!("cargo wipe {} -w", params.language).red(),
+                    format!("cargo wipe {} -w", args.language).red(),
                     "USE WITH CAUTION!".red()
                 )?;
             }
