@@ -4,11 +4,6 @@ use std::path::PathBuf;
 use clap::Parser;
 
 #[derive(Debug, Parser)]
-#[command(
-    version = env!("CARGO_PKG_VERSION"),
-    bin_name = "cargo",
-    // help_template = "{before-help}{name} {version}\n{author-with-newline}{about-with-newline}\n{usage-heading} {usage}\n\n{all-args}{after-help}",
-)]
 pub struct Args {
     /// Language to target
     #[arg(default_value_t = Language::All)]
