@@ -14,11 +14,11 @@ repository = "https://github.com/mihai-dinculescu/cargo-wipe"
 anyhow = "1.0"
 num-format = "0.4"
 number_prefix = "0.4"
-clap = { version = "4.5", features = ["color", "derive"] }
+clap = { version = "4.6", features = ["color", "derive"] }
 yansi = "1.0"
-strum = { version = "0.27.2", features = ["derive"] }
+strum = { version = "0.28.0", features = ["derive"] }
 
 [dev-dependencies]
-rand = "0.9"
-rand_distr = "0.5"
+rand = "0.10"
+rand_distr = "0.6"
 rstest = "0.26"

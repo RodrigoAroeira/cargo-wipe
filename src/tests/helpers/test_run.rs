@@ -1,4 +1,4 @@
-use rand::{Rng, prelude::ThreadRng, rng};
+use rand::{Rng, RngExt, prelude::ThreadRng, rng};
 use rand_distr::Alphanumeric;
 use std::path::{Path, PathBuf};
 
